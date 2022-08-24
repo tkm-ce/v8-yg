@@ -10,6 +10,7 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
+#include <sstream>
 
 #include "include/v8-locker.h"
 #include "src/api/api-inl.h"
@@ -204,6 +205,32 @@ class ScavengeTaskObserver : public AllocationObserver {
   Heap* heap_;
 };
 
+inline std::string get_env(const std::string& env_name) {
+  char* ret = getenv(env_name.c_str());
+  return ret ? std::string(ret) : std::string();
+}
+
+inline bool use_membalancer() {
+  return get_env("USE_MEMBALANCER") == "1";
+}
+
+inline std::string get_log_directory() {
+  return get_env("LOG_DIRECTORY");
+}
+
+inline bool log_gc() {
+  return get_env("LOG_GC") == "1";
+}
+
+inline double c_value() {
+  std::string c_value_str = get_env("C_VALUE");
+  CHECK(!c_value_str.empty());
+  std::istringstream os(c_value_str);
+  double c;
+  os >> c;
+  return c;
+}
+
 Heap::Heap()
     : isolate_(isolate()),
       heap_allocator_(this),
@@ -214,7 +241,9 @@ Heap::Heap()
       allocation_type_for_in_place_internalizable_strings_(
           isolate()->OwnsStringTables() ? AllocationType::kOld
                                         : AllocationType::kSharedOld),
-      collection_barrier_(new CollectionBarrier(this)) {
+      collection_barrier_(new CollectionBarrier(this)),
+      gc_log_f(get_log_directory() + guid() + ".gc.log"),
+      memory_log_f(get_log_directory() + guid() + ".memory.log") {
   // Ensure old_generation_size_ is a multiple of kPageSize.
   DCHECK_EQ(0, max_old_generation_size() & (Page::kPageSize - 1));
 
@@ -1751,6 +1780,59 @@ Heap::DevToolsTraceEventScope::~DevToolsTraceEventScope() {
                    heap_->SizeOfObjects());
 }
 
+bool Timer::started() {
+  return started_;
+}
+
+void Timer::start(const std::function<void()>& f, time_t::duration interval) {
+  std::lock_guard<std::recursive_mutex> timer_guard(mutex);
+  assert(!started());
+  started_ = true;
+  t = std::thread([=](){
+                    while(this->started_) {
+                      time_t time = std::chrono::system_clock::now();
+                      f();
+                      std::this_thread::sleep_until(time + interval);
+                    }
+                  });
+}
+
+void Timer::try_start(const std::function<void()>& f, time_t::duration interval) {
+  if (!started()) {
+    start(f, interval);
+  }
+}
+
+void Timer::stop() {
+  std::lock_guard<std::recursive_mutex> timer_guard(mutex);
+  std::cout << "inside timer stop" << std::endl;
+  CHECK(started());
+  started_ = false;
+  CHECK(t.joinable());
+  std::cout << "calling join" << std::endl;
+  t.join();
+}
+
+void Timer::try_stop() {
+  std::lock_guard<std::recursive_mutex> timer_guard(mutex);
+  if (started()) {
+    stop();
+  }
+}
+
+static inline size_t time_in_nanoseconds() {
+  static auto base = std::chrono::system_clock::now();
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now() - base).count();
+}
+
+void Heap::membalancer_update() {
+  if (use_membalancer() && has_s && has_g) {
+    std::cout << "L: " << L << ", g_bytes: " << g_bytes << ", g_time: " << g_time << ", s_bytes: " << s_bytes << ", s_time: " << s_time << std::endl;
+    size_t new_limit = L + sqrt(L * (g_bytes/g_time) / (s_bytes/s_time) / -c_value());
+    update_heap_limit(new_limit);
+  }
+}
+
 static GCType GetGCTypeFromGarbageCollector(GarbageCollector collector) {
   switch (collector) {
     case GarbageCollector::MARK_COMPACTOR:
@@ -1764,9 +1846,122 @@ static GCType GetGCTypeFromGarbageCollector(GarbageCollector collector) {
   }
 }
 
+#define DICT(s) "{" << s << "}"
+#define LIST(s) "[" << s << "]"
+#define ESCAPE(s) "\"" << s << "\""
+#define MEMBER(s) ESCAPE(s) << ":"
 bool Heap::CollectGarbage(AllocationSpace space,
                           GarbageCollectionReason gc_reason,
                           const v8::GCCallbackFlags gc_callback_flags) {
+  const char* collector_reason = nullptr;
+  size_t allocated_external_memory_since_mark_compact = AllocatedExternalMemorySinceMarkCompact();
+  bool major = !IsYoungGenerationCollector(SelectGarbageCollector(space, &collector_reason));
+  size_t before_memory = OldGenerationSizeOfObjects();
+  auto before_time = time_in_nanoseconds();
+  bool result = CollectGarbageAux(space, gc_reason, gc_callback_flags);
+  auto after_time = time_in_nanoseconds();
+  size_t after_memory = OldGenerationSizeOfObjects();
+  if (major) {
+    last_working_memory_size = after_memory;
+  }
+  // todo: is this the right api to call?
+  // sometimes working memory may be bigger. need this max to fix it.
+  size_t max_memory = std::max(old_generation_allocation_limit(), after_memory);
+  bool has_message = (this->major_gc_bad && this->major_allocation_bad);
+  bool need_message = log_gc() || use_membalancer();
+  if (has_message && need_message && major) {
+    L = after_memory;
+    std::stringstream j;
+    j << "{";
+    j << MEMBER("Limit") << old_generation_allocation_limit() << ",";
+    j << MEMBER("AllocatedExternalMemorySinceMarkCompact") << allocated_external_memory_since_mark_compact << ",";
+    j << MEMBER("major") << major << ",";
+    j << MEMBER("name") <<  ESCAPE(name_) << ",";
+    j << MEMBER("guid") << ESCAPE(guid()) << ",";
+    j << MEMBER("before_memory") << before_memory << ",";
+    j << MEMBER("after_memory") << after_memory << ",";
+    j << MEMBER("max_memory") << max_memory << ",";
+    j << MEMBER("before_time") << before_time << ",";
+    j << MEMBER("after_time") << after_time << ",";
+    j << MEMBER("new_space_capacity") << new_space_->Capacity() << ",";
+
+    auto this_concurrent_gc = concurrent_gc_time.exchange(0);
+    auto s_bytes_measurement = before_memory + allocated_external_memory_since_mark_compact;
+    auto s_time_measurement = (major_gc_bad.value().second + this_concurrent_gc) * 1000000;
+    UpdateTotalMajorGCTime(s_time_measurement / 1e6);
+    s_bytes = (s_bytes + s_bytes_measurement) / 2;
+    s_time = (s_time + s_time_measurement) / 2;
+    has_s = true;
+    j << MEMBER("gc_bytes") << s_bytes_measurement << ",";
+    j << MEMBER("gc_duration") << s_time_measurement << ",";
+    j << MEMBER("concurrent_gc_time") << this_concurrent_gc << ",";
+
+    double k = 0.95;
+    auto g_bytes_measurement = major_allocation_bad.value().first;
+    auto g_time_measurement = major_allocation_bad.value().second * 1000000;
+    g_bytes = g_bytes * k + g_bytes_measurement * (1 - k);
+    g_time = g_time * k + g_time_measurement * (1 - k);
+    j << MEMBER("allocation_bytes") << g_bytes_measurement << ",";
+    j << MEMBER("allocation_duration") << g_time_measurement << ",";
+
+    has_g = true;
+    last_M_update_time = after_time;
+    last_M_memory = after_memory;
+    membalancer_update();
+    j << MEMBER("size_of_objects") << SizeOfObjects() << ",";
+    j << MEMBER("total_major_gc_time") << GetTotalMajorGCTime() << ",";
+    j << MEMBER("gc_reason") << ESCAPE(GarbageCollectionReasonToString(gc_reason)) << ",";
+    j << MEMBER("collector_reason") << ESCAPE((collector_reason ? std::string(collector_reason) : ""));
+    j << "}";
+    if (log_gc()) {
+      gc_log_f << j.str() << std::endl;
+    }
+  }
+  this->major_gc_bad.reset();
+  this->major_allocation_bad.reset();
+  if (major && log_gc()) {
+    memory_log_timer.try_start([=]() {
+      auto SizeOfObjects = this->OldGenerationSizeOfObjects();
+      auto AllocatedExternalMemorySinceMarkCompact = this->AllocatedExternalMemorySinceMarkCompact();
+      auto time = time_in_nanoseconds();
+      auto memory = SizeOfObjects + AllocatedExternalMemorySinceMarkCompact;
+      std::stringstream j;
+      j << DICT(MEMBER("PhysicalMemory") << old_space()->CommittedPhysicalMemory() << "," <<
+                MEMBER("SizeOfObjects") << SizeOfObjects << "," <<
+                MEMBER("AllocatedExternalMemorySinceMarkCompact") << AllocatedExternalMemorySinceMarkCompact << "," <<
+                MEMBER("BenchmarkMemory") << SizeOfObjects + AllocatedExternalMemorySinceMarkCompact << "," <<
+                MEMBER("Limit") << old_generation_allocation_limit() << "," <<
+                MEMBER("time") << time_in_nanoseconds() << "," <<
+                MEMBER("name") << ESCAPE(name_) << "," <<
+                MEMBER("guid") << ESCAPE(guid()));
+      memory_log_f << j.str() << std::endl;
+      double k = 0.95;
+      g_bytes = g_bytes * k + std::max<double>(0, memory - last_M_memory) * (1 - k);
+      g_time = g_time * k + (time - last_M_update_time) * (1 - k);
+      last_M_update_time = time;
+      last_M_memory = memory;
+      membalancer_update();
+    },
+      std::chrono::milliseconds(1000));
+  }
+  return result;
+}
+#undef DICT
+#undef LIST
+#undef ESCAPE
+#undef MEMBER
+
+constexpr size_t min_heap_extra_space = 1048576 * 2;
+
+void Heap::update_heap_limit(size_t new_limit) {
+  new_limit = std::max<size_t>(last_working_memory_size + min_heap_extra_space, new_limit) + new_space_->Capacity();
+  old_generation_allocation_limit_ = new_limit;
+  global_allocation_limit_ = new_limit + global_allocation_limit_delta_;
+}
+
+bool Heap::CollectGarbageAux(AllocationSpace space,
+                             GarbageCollectionReason gc_reason,
+                             const v8::GCCallbackFlags gc_callback_flags) {
   if (V8_UNLIKELY(!deserialization_complete_)) {
     // During isolate initialization heap always grows. GC is only requested
     // if a new page allocation fails. In such a case we should crash with
@@ -2001,6 +2196,7 @@ int Heap::NotifyContextDisposed(bool dependant_context) {
 void Heap::StartIncrementalMarking(int gc_flags,
                                    GarbageCollectionReason gc_reason,
                                    GCCallbackFlags gc_callback_flags) {
+  std::cout << guid() << " start incremtal marking!" << std::endl;
   DCHECK(incremental_marking()->IsStopped());
 
   // Sweeping needs to be completed such that markbits are all cleared before
@@ -2485,6 +2681,9 @@ void Heap::EnsureSweepingCompleted(HeapObject object) {
 }
 
 void Heap::RecomputeLimits(GarbageCollector collector) {
+  if (collector == GarbageCollector::MARK_COMPACTOR) {
+    external_memory_.ResetAfterGC();
+  }
   if (!((collector == GarbageCollector::MARK_COMPACTOR) ||
         (HasLowYoungGenerationAllocationRate() &&
          old_generation_size_configured_))) {
@@ -2517,24 +2716,23 @@ void Heap::RecomputeLimits(GarbageCollector collector) {
   size_t new_space_capacity = NewSpaceCapacity();
   HeapGrowingMode mode = CurrentHeapGrowingMode();
 
-  if (collector == GarbageCollector::MARK_COMPACTOR) {
-    external_memory_.ResetAfterGC();
+  size_t old_generation_allocation_limit_temp = 0;
+  size_t global_allocation_limit_temp = 0;
 
-    set_old_generation_allocation_limit(
+  if (collector == GarbageCollector::MARK_COMPACTOR) {
+    old_generation_allocation_limit_temp =
         MemoryController<V8HeapTrait>::CalculateAllocationLimit(
             this, old_gen_size, min_old_generation_size_,
             max_old_generation_size(), new_space_capacity, v8_growing_factor,
-            mode));
+            mode);
     if (UseGlobalMemoryScheduling()) {
       DCHECK_GT(global_growing_factor, 0);
-      global_allocation_limit_ =
+      global_allocation_limit_temp =
           MemoryController<GlobalMemoryTrait>::CalculateAllocationLimit(
               this, GlobalSizeOfObjects(), min_global_memory_size_,
               max_global_memory_size_, new_space_capacity,
               global_growing_factor, mode);
     }
-    CheckIneffectiveMarkCompact(
-        old_gen_size, tracer()->AverageMarkCompactMutatorUtilization());
   } else if (HasLowYoungGenerationAllocationRate() &&
              old_generation_size_configured_) {
     size_t new_old_generation_limit =
@@ -2543,7 +2741,7 @@ void Heap::RecomputeLimits(GarbageCollector collector) {
             max_old_generation_size(), new_space_capacity, v8_growing_factor,
             mode);
     if (new_old_generation_limit < old_generation_allocation_limit()) {
-      set_old_generation_allocation_limit(new_old_generation_limit);
+      old_generation_allocation_limit_temp = new_old_generation_limit;
     }
     if (UseGlobalMemoryScheduling()) {
       DCHECK_GT(global_growing_factor, 0);
@@ -2553,8 +2751,17 @@ void Heap::RecomputeLimits(GarbageCollector collector) {
               max_global_memory_size_, new_space_capacity,
               global_growing_factor, mode);
       if (new_global_limit < global_allocation_limit_) {
-        global_allocation_limit_ = new_global_limit;
+        global_allocation_limit_temp = new_global_limit;
       }
+    }
+  }
+  global_allocation_limit_temp = std::max(old_generation_allocation_limit_temp, global_allocation_limit_temp);
+  global_allocation_limit_delta_ = global_allocation_limit_temp - old_generation_allocation_limit_temp;
+  if (!use_membalancer()) {
+    set_old_generation_allocation_limit(old_generation_allocation_limit_temp);
+    global_allocation_limit_ = global_allocation_limit_temp;
+    if (collector == GarbageCollector::MARK_COMPACTOR) {
+      CheckIneffectiveMarkCompact(old_gen_size, tracer()->AverageMarkCompactMutatorUtilization());
     }
   }
 }
@@ -6716,6 +6923,14 @@ void Heap::UpdateTotalGCTime(double duration) {
   if (FLAG_trace_gc_verbose) {
     total_gc_time_ms_ += duration;
   }
+}
+
+void Heap::UpdateTotalMajorGCTime(double duration) {
+  total_major_gc_time_ms_ += duration;
+}
+
+double Heap::GetTotalMajorGCTime() {
+  return total_major_gc_time_ms_ * 1000000;
 }
 
 void Heap::ExternalStringTable::CleanUpYoung() {

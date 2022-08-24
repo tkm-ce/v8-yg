@@ -5,12 +5,16 @@
 #ifndef V8_HEAP_HEAP_H_
 #define V8_HEAP_HEAP_H_
 
+#include <unistd.h>
 #include <atomic>
 #include <cmath>
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include <fstream>
+#include <thread>
+#include <mutex>
 
 // Clients of this interface shouldn't depend on lots of heap internals.
 // Do not include anything from src/heap here!
@@ -237,8 +241,43 @@ using EphemeronRememberedSet =
     std::unordered_map<EphemeronHashTable, std::unordered_set<int>,
                        Object::Hasher>;
 
+using CollectionEpoch = uint32_t;
+
+// A timer that call a function periodically.
+// One thing I can do is to have timer as a member of the object of interest,
+// And start/stop the timer automatically with RAII tricks, in the timer class.
+// This sounds too dangerous - the function might run when it is invalid.
+// Also, when the object timer call is being destructed, timer might call on invalid state again.
+// This API is also more flexible.
+class Timer {
+public:
+  using time_t = std::chrono::time_point<std::chrono::system_clock>;
+private:
+  std::atomic<bool> started_;
+  std::thread t;
+public:
+  Timer() : started_(false) { }
+  ~Timer() {
+    try_stop();
+  }
+  std::recursive_mutex mutex;
+  // a timer to make sure after stop() return, f() will not be running.
+  // we force the timer mutex to be of a high priority - other mutex-locked code *cannot* lock timer by calling timer's method.
+  // this design decision allow timer's f to call arbitary code.
+  // todo: right now, mutex is locked automatically on api call.
+  // maybe expose a transactional-based api that require passing the lock_guard?
+  bool started();
+  void start(const std::function<void()>& f, time_t::duration interval);
+  void try_start(const std::function<void()>& f, time_t::duration interval);
+  void stop();
+  void try_stop();
+};
+
 class Heap {
  public:
+  std::string guid() const {
+    return std::to_string(getpid()) + "_" + std::to_string(reinterpret_cast<intptr_t>(this));
+  }
   // Stores ephemeron entries where the EphemeronHashTable is in old-space,
   // and the key of the entry is in new-space. Such keys do not appear in the
   // usual OLD_TO_NEW remembered set.
@@ -1011,6 +1050,10 @@ class Heap {
   V8_EXPORT_PRIVATE bool CollectGarbage(
       AllocationSpace space, GarbageCollectionReason gc_reason,
       const GCCallbackFlags gc_callback_flags = kNoGCCallbackFlags);
+
+  V8_EXPORT_PRIVATE bool CollectGarbageAux(
+      AllocationSpace space, GarbageCollectionReason gc_reason,
+      const GCCallbackFlags gc_callback_flags);
 
   // Performs a full garbage collection.
   V8_EXPORT_PRIVATE void CollectAllGarbage(
@@ -2288,7 +2331,8 @@ class Heap {
   // which collector to invoke, before expanding a paged space in the old
   // generation and on every allocation in large object space.
   std::atomic<size_t> old_generation_allocation_limit_{0};
-  size_t global_allocation_limit_ = 0;
+  std::atomic<size_t> global_allocation_limit_{0};
+  std::atomic<size_t> global_allocation_limit_delta_{0};
 
   // Weak list heads, threaded through the objects.
   // List heads are initialized lazily and contain the undefined_value at start.
@@ -2523,6 +2567,27 @@ class Heap {
 
   // Used in cctest.
   friend class heap::HeapTester;
+
+public:
+  // also touch global allocation limit
+  void update_heap_limit(size_t new_limit);
+  std::ofstream gc_log_f, memory_log_f;
+  Timer memory_log_timer;
+  // for monitoring purpose only
+  std::string name_;
+  double total_major_gc_time_ms_ = 0.0;
+  void UpdateTotalMajorGCTime(double duration);
+  double GetTotalMajorGCTime();
+  std::atomic<size_t> last_working_memory_size{0};
+  using BytesAndDuration = std::pair<uint64_t, double>;
+  base::Optional<BytesAndDuration> major_gc_bad, major_allocation_bad;
+  std::atomic<size_t> L{0};
+  std::atomic<double> g_bytes{0}, g_time{0}, s_bytes{0}, s_time{0};
+  std::atomic<bool> has_g{false}, has_s{false};
+  std::atomic<size_t> last_M_update_time{0};
+  std::atomic<double> last_M_memory{0};
+  std::atomic<size_t> concurrent_gc_time{0};
+  void membalancer_update();
 };
 
 class HeapStats {

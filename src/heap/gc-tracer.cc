@@ -388,6 +388,30 @@ void GCTracer::UpdateStatistics(GarbageCollector collector) {
     RecordGCSumCounters();
     combined_mark_compact_speed_cache_ = 0.0;
     long_task_stats->gc_full_atomic_wall_clock_duration_us += duration_us;
+    double time_taken = duration + current_.incremental_marking_duration;
+    int64_t gced = static_cast<int64_t>(current_.start_object_size) - current_.end_object_size;
+    std::cout
+      << "gc, name: " << heap_->name_
+      << " size: " << current_.start_object_size << " duration: " << time_taken << " speed: " << current_.start_object_size / time_taken
+      << " garbage collected: " << gced << " speed: " << gced / time_taken
+      << " heap limit: " << heap_->old_generation_allocation_limit() << " size before gc: " << current_.start_object_size << " guid: " << heap_->guid()
+      << std::endl;
+    auto bad = MakeBytesAndDuration(gced, time_taken);
+    CHECK(!heap_->major_gc_bad);
+    heap_->major_gc_bad = bad;
+    if (has_last_gc) {
+      // assumption broken due to incremental gc
+      // CHECK(current_.start_object_size >= last_gc_end_bytes);
+      CHECK(current_.end_time - last_gc_end_time - time_taken > 0);
+      auto bad = MakeBytesAndDuration(std::max<int64_t>(0,
+                                                        current_.start_object_size - last_gc_end_bytes + heap_->AllocatedExternalMemorySinceMarkCompact()),
+                                      current_.end_time - last_gc_end_time - time_taken);
+      CHECK(!heap_->major_allocation_bad);
+      heap_->major_allocation_bad = bad;
+    }
+    has_last_gc = true;
+    last_gc_end_bytes = current_.end_object_size;
+    last_gc_end_time = current_.end_time;
   }
 
   heap_->UpdateTotalGCTime(duration);

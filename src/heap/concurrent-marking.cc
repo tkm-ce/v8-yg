@@ -578,6 +578,7 @@ void ConcurrentMarking::Run(JobDelegate* delegate,
         "Task %d concurrently marked %dKB in %.2fms\n", task_id,
         static_cast<int>(marked_bytes / KB), time_ms);
   }
+  heap_->concurrent_gc_time += time_ms;
 }
 
 size_t ConcurrentMarking::GetMaxConcurrency(size_t worker_count) {

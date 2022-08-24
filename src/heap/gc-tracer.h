@@ -54,6 +54,7 @@ using CollectionEpoch = uint32_t;
 // GCTracer collects and prints ONE line after each garbage collector
 // invocation IFF --trace_gc is used.
 class V8_EXPORT_PRIVATE GCTracer {
+  friend class Heap;
  public:
   GCTracer(const GCTracer&) = delete;
   GCTracer& operator=(const GCTracer&) = delete;
@@ -330,6 +331,14 @@ class V8_EXPORT_PRIVATE GCTracer {
   // Compute the overall mark compact speed including incremental steps
   // and the final mark-compact step.
   double CombinedMarkCompactSpeedInBytesPerMillisecond();
+  double MajorGCSpeed();
+  double MajorGCDuration();
+  // bytes = current_start.bytes - last_stop.bytes
+  // duration = current_stop.time - last_stop.time - gc.duration
+  // we do not use current_start.time - last_stop.time, as there is incremtnal gc.
+  bool has_last_gc = false;
+  size_t last_gc_end_bytes = 0;
+  double last_gc_end_time = 0;
 
   // Allocation throughput in the new space in bytes/millisecond.
   // Returns 0 if no allocation events have been recorded.
