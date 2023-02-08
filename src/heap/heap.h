@@ -13,6 +13,7 @@
 #include <unordered_set>
 #include <vector>
 #include <fstream>
+#include <unistd.h>
 
 // Clients of this interface shouldn't depend on lots of heap internals.
 // Do not include anything from src/heap here!
