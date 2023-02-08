@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <sstream>
+#include <nlohmann/json.hpp>
 
 #include "src/api/api-inl.h"
 #include "src/base/bits.h"
