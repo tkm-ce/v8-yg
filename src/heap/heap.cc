@@ -254,6 +254,10 @@ inline bool use_membalancer() {
   return get_env("USE_MEMBALANCER") == "1";
 }
 
+inline bool use_yg_balancer() {
+  return get_env("YG_BALANCER") == "1";
+}
+
 inline std::string get_log_directory() {
   return get_env("LOG_DIRECTORY");
 }
@@ -1622,6 +1626,17 @@ size_t Heap::adjusted_global_allocation_limit() const {
   } else {
     return global_allocation_limit();
   }
+}
+
+void Heap::update_young_gen_size() {
+
+  if(!use_yg_balancer()) {
+    std::cout<<"yg_balancer flag disabled"<<std::endl;
+    return;
+  }
+  max_semi_space_size_ = semispace_size_factor * kMinSemiSpaceSize;
+  initial_semispace_size_ = max_semi_space_size_;
+  std::cout<<"updating yg_size to "<<initial_semispace_size_<<std::endl;
 }
 
 bool Heap::CollectGarbage(AllocationSpace space,
