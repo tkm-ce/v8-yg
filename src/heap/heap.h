@@ -1970,6 +1970,7 @@ class Heap {
   size_t global_allocation_limit() const { return global_allocation_limit_; }
 
   size_t adjusted_global_allocation_limit() const;
+  void Heap::update_young_gen_size();
 
   size_t max_old_generation_size() {
     return max_old_generation_size_.load(std::memory_order_relaxed);

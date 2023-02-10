@@ -1634,7 +1634,7 @@ void Heap::update_young_gen_size() {
     std::cout<<"yg_balancer flag disabled"<<std::endl;
     return;
   }
-  max_semi_space_size_ = semispace_size_factor * kMinSemiSpaceSize;
+  max_semi_space_size_ = 5 * kMinSemiSpaceSize;
   initial_semispace_size_ = max_semi_space_size_;
   std::cout<<"updating yg_size to "<<initial_semispace_size_<<std::endl;
 }
