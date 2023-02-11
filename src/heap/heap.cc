@@ -1686,7 +1686,7 @@ bool Heap::CollectGarbage(AllocationSpace space,
   j["after_time"] = after_time;
   j["new_space_capacity"] = new_space_->Capacity();
   j["gc_bytes"] = before_memory + allocated_external_memory_since_mark_compact;
-  j["size_of_objects"] = AllGenerationSizeOfObjects()
+  j["size_of_objects"] = AllGenerationSizeOfObjects();
   j["total_major_gc_time"] =  after_time - before_time; //GetTotalMajorGCTime();
   j["gc_reason"] = GarbageCollectionReasonToString(gc_reason);
   j["collector_reason"] = collector_reason ? std::string(collector_reason) : "";
