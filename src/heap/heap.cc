@@ -1652,9 +1652,10 @@ bool Heap::CollectGarbage(AllocationSpace space,
   size_t after_memory = AllGenerationSizeOfObjects();
   // sometimes working memory may be bigger. need this max to fix it.
   size_t max_memory = std::max(old_generation_allocation_limit(), after_memory);
+  json j;
   if (major) {
     L = after_memory;
-    json j;
+    
     if (this->major_gc_bad) {
       s_bytes = (s_bytes + before_memory + allocated_external_memory_since_mark_compact) / 2;
       s_time = (s_time + major_gc_bad.value().second * 1000000) / 2;
@@ -1693,19 +1694,19 @@ bool Heap::CollectGarbage(AllocationSpace space,
     gc_log_f << j << std::endl;
   }
   memory_log_timer.try_start([=]() {
-      json j;
+      json j_memory;
       auto SizeOfObjects = this->AllGenerationSizeOfObjects();
       auto AllocatedExternalMemorySinceMarkCompact = this->AllocatedExternalMemorySinceMarkCompact();
       auto time = time_in_nanoseconds();
       auto memory = SizeOfObjects + AllocatedExternalMemorySinceMarkCompact;
-      j["PhysicalMemory"] = old_space()->CommittedPhysicalMemory();
-      j["SizeOfObjects"] = SizeOfObjects;
-      j["AllocatedExternalMemorySinceMarkCompact"] = AllocatedExternalMemorySinceMarkCompact;
-      j["BenchmarkMemory"] = memory;
-      j["Limit"] = old_generation_allocation_limit();
-      j["time"] = time;
-      j["guid"] = guid();
-      memory_log_f << j << std::endl;
+      j_memory["PhysicalMemory"] = old_space()->CommittedPhysicalMemory();
+      j_memory["SizeOfObjects"] = SizeOfObjects;
+      j_memory["AllocatedExternalMemorySinceMarkCompact"] = AllocatedExternalMemorySinceMarkCompact;
+      j_memory["BenchmarkMemory"] = memory;
+      j_memory["Limit"] = old_generation_allocation_limit();
+      j_memory["time"] = time;
+      j_memory["guid"] = guid();
+      memory_log_f << j_memory << std::endl;
       double k = 0.95;
       g_bytes = g_bytes * k + std::max<double>(0, memory - last_M_memory) * (1 - k);
       g_time = g_time * k + (time - last_M_update_time) * (1 - k);
