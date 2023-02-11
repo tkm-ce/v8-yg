@@ -428,13 +428,31 @@ void NewSpace::ResetParkedAllocationBuffers() {
 
 void NewSpace::Flip() { SemiSpace::Swap(&from_space_, &to_space_); }
 
-void NewSpace::Grow() {
+
+/*
+
+YG CHANGES START
+
+*/
+
+void NewSpace::UpdateYGSize(size_t capacity) {
+
+  if(capacity > TotalCapacity()) {
+    std::cout<<"Growing yg size from "<<TotalCapacity()<<" to: "<<capacity<<std::endl;
+    GrowYGTo(capacity);
+  } else {
+    std::cout<<"Shrinking yg size from "<<TotalCapacity()<<" to: "<<capacity<<std::endl;
+    ShrinkYGTo(capacity);
+  }
+
+}
+
+void NewSpace::GrowYGTo(size_t capacity) {
+
   DCHECK_IMPLIES(FLAG_local_heaps, heap()->safepoint()->IsActive());
   // Double the semispace size but only up to maximum capacity.
   DCHECK(TotalCapacity() < MaximumCapacity());
-  size_t new_capacity = std::min(
-      MaximumCapacity(),
-      static_cast<size_t>(FLAG_semi_space_growth_factor) * TotalCapacity());
+  size_t new_capacity = capacity;
   if (to_space_.GrowTo(new_capacity)) {
     // Only grow from space if we managed to grow to-space.
     if (!from_space_.GrowTo(new_capacity)) {
@@ -446,8 +464,8 @@ void NewSpace::Grow() {
   DCHECK_SEMISPACE_ALLOCATION_INFO(allocation_info_, to_space_);
 }
 
-void NewSpace::Shrink() {
-  size_t new_capacity = std::max(InitialTotalCapacity(), 2 * Size());
+void NewSpace::ShrinkYGTo(size_t capacity) {
+  size_t new_capacity = capacity;
   size_t rounded_new_capacity = ::RoundUp(new_capacity, Page::kPageSize);
   if (rounded_new_capacity < TotalCapacity()) {
     to_space_.ShrinkTo(rounded_new_capacity);
@@ -457,6 +475,43 @@ void NewSpace::Shrink() {
   }
   DCHECK_SEMISPACE_ALLOCATION_INFO(allocation_info_, to_space_);
 }
+
+
+void NewSpace::Grow() {
+  // DCHECK_IMPLIES(FLAG_local_heaps, heap()->safepoint()->IsActive());
+  // // Double the semispace size but only up to maximum capacity.
+  // DCHECK(TotalCapacity() < MaximumCapacity());
+  // size_t new_capacity = std::min(
+  //     MaximumCapacity(),
+  //     static_cast<size_t>(FLAG_semi_space_growth_factor) * TotalCapacity());
+  // if (to_space_.GrowTo(new_capacity)) {
+  //   // Only grow from space if we managed to grow to-space.
+  //   if (!from_space_.GrowTo(new_capacity)) {
+  //     // If we managed to grow to-space but couldn't grow from-space,
+  //     // attempt to shrink to-space.
+  //     to_space_.ShrinkTo(from_space_.target_capacity());
+  //   }
+  // }
+  // DCHECK_SEMISPACE_ALLOCATION_INFO(allocation_info_, to_space_);
+}
+
+void NewSpace::Shrink() {
+  // size_t new_capacity = std::max(InitialTotalCapacity(), 2 * Size());
+  // size_t rounded_new_capacity = ::RoundUp(new_capacity, Page::kPageSize);
+  // if (rounded_new_capacity < TotalCapacity()) {
+  //   to_space_.ShrinkTo(rounded_new_capacity);
+  //   // Only shrink from-space if we managed to shrink to-space.
+  //   if (from_space_.IsCommitted()) from_space_.Reset();
+  //   from_space_.ShrinkTo(rounded_new_capacity);
+  // }
+  // DCHECK_SEMISPACE_ALLOCATION_INFO(allocation_info_, to_space_);
+}
+
+
+/*
+
+YG CHANGES ENDS
+*/
 
 bool NewSpace::Rebalance() {
   // Order here is important to make use of the page pool.

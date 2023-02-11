@@ -1426,6 +1426,7 @@ class Heap {
   // Returns the size of objects residing in non-new spaces.
   // Excludes external memory held by those objects.
   V8_EXPORT_PRIVATE size_t OldGenerationSizeOfObjects();
+  V8_EXPORT_PRIVATE size_t AllGenerationSizeOfObjects()
 
   V8_EXPORT_PRIVATE size_t GlobalSizeOfObjects();
 

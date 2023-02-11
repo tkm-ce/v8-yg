@@ -257,6 +257,11 @@ class V8_EXPORT_PRIVATE NewSpace
   // Shrink the capacity of the semispaces.
   void Shrink();
 
+
+  void ShrinkYGTo(size_t capacity);
+  void GrowYGTo(size_t capacity);
+  void UpdateYGSize(size_t capacity);
+
   // Return the allocated bytes in the active semispace.
   size_t Size() final {
     DCHECK_GE(top(), to_space_.page_low());

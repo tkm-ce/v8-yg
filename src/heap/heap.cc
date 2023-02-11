@@ -1634,8 +1634,8 @@ void Heap::update_young_gen_size() {
     std::cout<<"yg_balancer flag disabled"<<std::endl;
     return;
   }
-  max_semi_space_size_ = 5 * kMinSemiSpaceSize;
-  initial_semispace_size_ = max_semi_space_size_;
+  size_t new_capacity =  1.1 * new_space_->Capacity();
+  new_space_->UpdateYGSize(new_capacity);
   std::cout<<"updating yg_size to "<<initial_semispace_size_<<std::endl;
 }
 
@@ -1645,11 +1645,11 @@ bool Heap::CollectGarbage(AllocationSpace space,
   const char* collector_reason = nullptr;
   size_t allocated_external_memory_since_mark_compact = AllocatedExternalMemorySinceMarkCompact();
   bool major = !IsYoungGenerationCollector(SelectGarbageCollector(space, &collector_reason));
-  size_t before_memory = OldGenerationSizeOfObjects();
+  size_t before_memory = AllGenerationSizeOfObjects();
   auto before_time = time_in_nanoseconds();
   bool result = CollectGarbageAux(space, gc_reason, gc_callback_flags);
   auto after_time = time_in_nanoseconds();
-  size_t after_memory = OldGenerationSizeOfObjects();
+  size_t after_memory = AllGenerationSizeOfObjects();
   // sometimes working memory may be bigger. need this max to fix it.
   size_t max_memory = std::max(old_generation_allocation_limit(), after_memory);
   if (major) {
@@ -1670,55 +1670,57 @@ bool Heap::CollectGarbage(AllocationSpace space,
       j["allocation_duration"] = major_allocation_bad.value().second * 1000000;
       has_g = true;
     }
-    last_M_update_time = after_time;
-    last_M_memory = after_memory;
-    CHECK(!cpp_heap_);
-    j["Limit"] = old_generation_allocation_limit();
-    j["AllocatedExternalMemorySinceMarkCompact"] = allocated_external_memory_since_mark_compact;
-    j["major"] = major;
-    j["name"] = name_;
-    j["before_memory"] = before_memory;
-    j["after_memory"] = after_memory;
-    j["max_memory"] = max_memory;
-    j["before_time"] = before_time;
-    j["after_time"] = after_time;
-    j["new_space_capacity"] = new_space_->Capacity();
-    j["gc_bytes"] = before_memory + allocated_external_memory_since_mark_compact;
-    j["size_of_objects"] = SizeOfObjects();
-    j["total_major_gc_time"] = GetTotalMajorGCTime();
-    j["gc_reason"] = GarbageCollectionReasonToString(gc_reason);
-    j["collector_reason"] = collector_reason ? std::string(collector_reason) : "";
-    if (log_gc()) {
-      gc_log_f << j << std::endl;
-    }
-    memory_log_timer.try_start([=]() {
-        json j;
-        auto SizeOfObjects = this->OldGenerationSizeOfObjects();
-        auto AllocatedExternalMemorySinceMarkCompact = this->AllocatedExternalMemorySinceMarkCompact();
-        auto time = time_in_nanoseconds();
-        auto memory = SizeOfObjects + AllocatedExternalMemorySinceMarkCompact;
-        j["PhysicalMemory"] = old_space()->CommittedPhysicalMemory();
-        j["SizeOfObjects"] = SizeOfObjects;
-        j["AllocatedExternalMemorySinceMarkCompact"] = AllocatedExternalMemorySinceMarkCompact;
-        j["BenchmarkMemory"] = memory;
-        j["Limit"] = old_generation_allocation_limit();
-        j["time"] = time;
-        j["guid"] = guid();
-        memory_log_f << j << std::endl;
-        double k = 0.95;
-        g_bytes = g_bytes * k + std::max<double>(0, memory - last_M_memory) * (1 - k);
-        g_time = g_time * k + (time - last_M_update_time) * (1 - k);
-        last_M_update_time = time;
-        last_M_memory = memory;
-        if (has_s && has_g) {
-          membalancer_update();
-        }
-      },
-      std::chrono::milliseconds(1000));
-    this->major_gc_bad.reset();
-    this->major_allocation_bad.reset();
-    membalancer_update();
   }
+  last_M_update_time = after_time;
+  last_M_memory = after_memory;
+  CHECK(!cpp_heap_);
+  j["Limit"] = old_generation_allocation_limit();
+  j["AllocatedExternalMemorySinceMarkCompact"] = allocated_external_memory_since_mark_compact;
+  j["major"] = major;
+  j["name"] = name_;
+  j["before_memory"] = before_memory;
+  j["after_memory"] = after_memory;
+  j["max_memory"] = max_memory;
+  j["before_time"] = before_time;
+  j["after_time"] = after_time;
+  j["new_space_capacity"] = new_space_->Capacity();
+  j["gc_bytes"] = before_memory + allocated_external_memory_since_mark_compact;
+  j["size_of_objects"] = AllGenerationSizeOfObjects()
+  j["total_major_gc_time"] =  after_time - before_time; //GetTotalMajorGCTime();
+  j["gc_reason"] = GarbageCollectionReasonToString(gc_reason);
+  j["collector_reason"] = collector_reason ? std::string(collector_reason) : "";
+  if (log_gc()) {
+    gc_log_f << j << std::endl;
+  }
+  memory_log_timer.try_start([=]() {
+      json j;
+      auto SizeOfObjects = this->AllGenerationSizeOfObjects();
+      auto AllocatedExternalMemorySinceMarkCompact = this->AllocatedExternalMemorySinceMarkCompact();
+      auto time = time_in_nanoseconds();
+      auto memory = SizeOfObjects + AllocatedExternalMemorySinceMarkCompact;
+      j["PhysicalMemory"] = old_space()->CommittedPhysicalMemory();
+      j["SizeOfObjects"] = SizeOfObjects;
+      j["AllocatedExternalMemorySinceMarkCompact"] = AllocatedExternalMemorySinceMarkCompact;
+      j["BenchmarkMemory"] = memory;
+      j["Limit"] = old_generation_allocation_limit();
+      j["time"] = time;
+      j["guid"] = guid();
+      memory_log_f << j << std::endl;
+      double k = 0.95;
+      g_bytes = g_bytes * k + std::max<double>(0, memory - last_M_memory) * (1 - k);
+      g_time = g_time * k + (time - last_M_update_time) * (1 - k);
+      last_M_update_time = time;
+      last_M_memory = memory;
+      if (has_s && has_g) {
+        membalancer_update();
+      }
+    },
+    std::chrono::milliseconds(1000));
+  this->major_gc_bad.reset();
+  this->major_allocation_bad.reset();
+  membalancer_update();
+  update_young_gen_size();
+  
   return result;
 }
 
@@ -5042,6 +5044,11 @@ size_t Heap::OldGenerationSizeOfObjects() {
     total += space->SizeOfObjects();
   }
   return total + lo_space_->SizeOfObjects() + code_lo_space_->SizeOfObjects();
+}
+
+size_t Heap::AllGenerationSizeOfObjects() {
+
+  return OldGenerationSizeOfObjects() + new_space_->SizeOfObjects();
 }
 
 size_t Heap::GlobalSizeOfObjects() {
