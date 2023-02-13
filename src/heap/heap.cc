@@ -1628,20 +1628,29 @@ size_t Heap::adjusted_global_allocation_limit() const {
   }
 }
 
-void Heap::update_young_gen_size() {
+void Heap::update_young_gen_size(size_t L, size_t mj, double sj_bytes, double sj_time, double gi_bytes, double gi_time) {
 
   if(!use_yg_balancer()) {
     std::cout<<"yg_balancer flag disabled"<<std::endl;
     return;
   }
-  size_t new_capacity =  1.1 * new_space_->Capacity();
-  new_space_->UpdateYGSize(new_capacity);
-  std::cout<<"updating yg_size to "<<initial_semispace_size_<<std::endl;
+  // Mi = (cEj^2 Sj)/(Lgb) - a/b
+  size_t c = 1;
+  // size_t mj = 1;
+  double sj = sj_bytes / sj_time;
+  // size_t L = 1;
+  double g = gi_bytes / gi_time;
+  double b = 0.35;
+  double a = 0.25; //slope
+  size_t mi = (size_t)((c * (mj - L) * sj)/(L * g * b) - a/b); 
+  new_space_->UpdateYGSize(mi);
+  std::cout<<"updating yg_size to "<<mi<<std::endl;
 }
 
 bool Heap::CollectGarbage(AllocationSpace space,
                           GarbageCollectionReason gc_reason,
                           const v8::GCCallbackFlags gc_callback_flags) {
+  std::cout<<"Garbage collection"<<std::endl;
   const char* collector_reason = nullptr;
   size_t allocated_external_memory_since_mark_compact = AllocatedExternalMemorySinceMarkCompact();
   bool major = !IsYoungGenerationCollector(SelectGarbageCollector(space, &collector_reason));
@@ -1654,7 +1663,7 @@ bool Heap::CollectGarbage(AllocationSpace space,
   size_t max_memory = std::max(old_generation_allocation_limit(), after_memory);
   json j;
   if (major) {
-    L = after_memory;
+      L = after_memory;
     
     if (this->major_gc_bad) {
       s_bytes = (s_bytes + before_memory + allocated_external_memory_since_mark_compact) / 2;
@@ -1720,7 +1729,7 @@ bool Heap::CollectGarbage(AllocationSpace space,
   this->major_gc_bad.reset();
   this->major_allocation_bad.reset();
   membalancer_update();
-  update_young_gen_size();
+  update_young_gen_size(L, max_memory, s_bytes, s_time, g_bytes, g_time);
   
   return result;
 }
