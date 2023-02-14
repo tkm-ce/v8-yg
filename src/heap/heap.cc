@@ -1635,15 +1635,19 @@ void Heap::update_young_gen_size(size_t L, size_t mj, double sj_bytes, double sj
     std::cout<<"yg_balancer flag disabled"<<std::endl;
     return;
   }
-  // Mi = (cEj^2 Sj)/(Lgb) - a/b
-  size_t c = 1;
-  // size_t mj = 1;
-  double sj = sj_bytes / sj_time;
-  // size_t L = 1;
-  double g = gi_bytes / gi_time;
   double b = 0.35;
   double a = 0.25; //slope
+  size_t c = 1;
   std::cout<<"Eqn: c: "<<c<<" sj_bytes: "<<sj_bytes<<" sj_time: "<<sj_time<<" gi_bytes: "<<gi_bytes<<" gi_time: "<<gi_time<<" b: "<<b<<" a: "<<a<<" L: "<<L<<" mj: "<<mj<<std::endl;
+  if(sj_bytes <=0 || sj_time <=0 || gi_time <=0 || gi_bytes <=0 ||  L <=0) {
+    std::cout<<"Some values are 0. Not updating yg size"<<std::endl;
+    return;
+  }
+  // Mi = (cEj^2 Sj)/(Lgb) - a/b
+  double sj = sj_bytes / sj_time;
+  double g = gi_bytes / gi_time;
+  
+  // std::cout<<"Eqn: c: "<<c<<" sj_bytes: "<<sj_bytes<<" sj_time: "<<sj_time<<" gi_bytes: "<<gi_bytes<<" gi_time: "<<gi_time<<" b: "<<b<<" a: "<<a<<" L: "<<L<<" mj: "<<mj<<std::endl;
   size_t mi = (size_t)((c * (mj - L) * sj)/(L * g * b) - a/b); 
   new_space_->UpdateYGSize(mi);
   std::cout<<"updating yg_size to "<<mi<<std::endl;
