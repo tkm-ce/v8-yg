@@ -255,6 +255,7 @@ inline bool use_membalancer() {
 }
 
 inline bool use_yg_balancer() {
+  std::cout<<"YG_BALANCER: "<<get_env("YG_BALANCER")<<std::endl;
   return get_env("YG_BALANCER") == "1";
 }
 
@@ -1642,6 +1643,7 @@ void Heap::update_young_gen_size(size_t L, size_t mj, double sj_bytes, double sj
   double g = gi_bytes / gi_time;
   double b = 0.35;
   double a = 0.25; //slope
+  std::cout<<"Eqn: c: "<<c<<" sj_bytes: "<<sj_bytes<<" sj_time: "<<sj_time<<" gi_bytes: "<<gi_bytes<<" gi_time: "<<gi_time<<" b: "<<b<<" a: "<<a<<" L: "<<L<<" mj: "<<mj<<std::endl;
   size_t mi = (size_t)((c * (mj - L) * sj)/(L * g * b) - a/b); 
   new_space_->UpdateYGSize(mi);
   std::cout<<"updating yg_size to "<<mi<<std::endl;
