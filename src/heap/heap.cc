@@ -1732,32 +1732,6 @@ bool Heap::CollectGarbage(AllocationSpace space,
   if (has_s && has_g) {
     membalancer_update();
   }
-
-
-  // memory_log_timer.try_start([=]() {
-  //     json j_memory;
-  //     auto SizeOfObjects = this->AllGenerationSizeOfObjects();
-  //     auto AllocatedExternalMemorySinceMarkCompact = this->AllocatedExternalMemorySinceMarkCompact();
-  //     auto time = time_in_nanoseconds();
-  //     auto memory = SizeOfObjects + AllocatedExternalMemorySinceMarkCompact;
-  //     j_memory["PhysicalMemory"] = old_space()->CommittedPhysicalMemory();
-  //     j_memory["SizeOfObjects"] = SizeOfObjects;
-  //     j_memory["AllocatedExternalMemorySinceMarkCompact"] = AllocatedExternalMemorySinceMarkCompact;
-  //     j_memory["BenchmarkMemory"] = memory;
-  //     j_memory["Limit"] = old_generation_allocation_limit() + new_space_->CommittedMemory();
-  //     j_memory["time"] = time;
-  //     j_memory["guid"] = guid();
-  //     memory_log_f << j_memory << std::endl;
-  //     double k = 0.95;
-  //     g_bytes = g_bytes * k + std::max<double>(0, memory - last_M_memory) * (1 - k);
-  //     g_time = g_time * k + (time - last_M_update_time) * (1 - k);
-  //     last_M_update_time = time;
-  //     last_M_memory = memory;
-  //     if (has_s && has_g) {
-  //       membalancer_update();
-  //     }
-  //   },
-  //   std::chrono::milliseconds(1000));
   this->major_gc_bad.reset();
   this->major_allocation_bad.reset();
   membalancer_update();
