@@ -1718,7 +1718,7 @@ bool Heap::CollectGarbage(AllocationSpace space,
       j_memory["SizeOfObjects"] = SizeOfObjects;
       j_memory["AllocatedExternalMemorySinceMarkCompact"] = AllocatedExternalMemorySinceMarkCompact;
       j_memory["BenchmarkMemory"] = memory;
-      j_memory["Limit"] = old_generation_allocation_limit();
+      j_memory["Limit"] = old_generation_allocation_limit() + this->new_space()->from_space()->current_capacity();
       j_memory["time"] = time;
       j_memory["guid"] = guid();
       memory_log_f << j_memory << std::endl;
