@@ -1629,7 +1629,7 @@ size_t Heap::adjusted_global_allocation_limit() const {
   }
 }
 
-void Heap::update_young_gen_size(size_t L, size_t mj, double sj_bytes, double sj_time, double gi_bytes, double gi_time) {
+void Heap::update_young_gen_size(size_t mj, double sj_bytes, double sj_time, double gi_bytes, double gi_time) {
 
   if(!use_yg_balancer()) {
     std::cout<<"yg_balancer flag disabled"<<std::endl;
@@ -1637,12 +1637,14 @@ void Heap::update_young_gen_size(size_t L, size_t mj, double sj_bytes, double sj
   }
   double b = 0.35;
   double a = 0.25; //slope
+  size_t L = OldGenerationSizeOfObjects();
   size_t c = 1;
   std::cout<<"Eqn: c: "<<c<<" sj_bytes: "<<sj_bytes<<" sj_time: "<<sj_time<<" gi_bytes: "<<gi_bytes<<" gi_time: "<<gi_time<<" b: "<<b<<" a: "<<a<<" L: "<<L<<" mj: "<<mj<<std::endl;
-  if(sj_bytes <=0 || sj_time <=0 || gi_time <=0 || gi_bytes <=0 ||  L <=0) {
-    std::cout<<"Some values are 0. Not updating yg size"<<std::endl;
-    return;
-  }
+  sj_bytes = (sj_bytes <= 0) ? 1 : sj_bytes;
+  sj_time = (sj_time <= 0) ? 1 : sj_time;
+  gi_time = (gi_time <= 0) ? 1 : gi_time;
+  gi_bytes = (gi_bytes <= 0) ? 1 : gi_bytes;
+  
   // Mi = (cEj^2 Sj)/(Lgb) - a/b
   double sj = sj_bytes / sj_time;
   double g = gi_bytes / gi_time;
