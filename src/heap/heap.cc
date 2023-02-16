@@ -1644,7 +1644,7 @@ void Heap::update_young_gen_size(size_t mj, double sj_bytes, double sj_time, dou
   sj_time = (sj_time <= 0) ? 1 : sj_time;
   gi_time = (gi_time <= 0) ? 1 : gi_time;
   gi_bytes = (gi_bytes <= 0) ? 1 : gi_bytes;
-  
+
   // Mi = (cEj^2 Sj)/(Lgb) - a/b
   double sj = sj_bytes / sj_time;
   double g = gi_bytes / gi_time;
@@ -1737,7 +1737,7 @@ bool Heap::CollectGarbage(AllocationSpace space,
   this->major_gc_bad.reset();
   this->major_allocation_bad.reset();
   membalancer_update();
-  update_young_gen_size(L, max_memory, s_bytes, s_time, g_bytes, g_time);
+  update_young_gen_size(max_memory, s_bytes, s_time, g_bytes, g_time);
   
   return result;
 }
