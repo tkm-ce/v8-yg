@@ -1693,7 +1693,7 @@ bool Heap::CollectGarbage(AllocationSpace space,
   j["Limit"] = old_generation_allocation_limit();
   j["AllocatedExternalMemorySinceMarkCompact"] = allocated_external_memory_since_mark_compact;
   j["major"] = major;
-  j["name"] = name_;
+  j["name"] = "1234"; //name_;
   j["before_memory"] = before_memory;
   j["after_memory"] = after_memory;
   j["max_memory"] = max_memory;
