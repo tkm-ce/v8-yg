@@ -1638,19 +1638,19 @@ void Heap::update_young_gen_size(size_t mj, double sj_bytes, double sj_time, dou
   double b = 0.35;
   double a = 0.25; //slope
   size_t L = OldGenerationSizeOfObjects();
-  size_t c = 1;
+  size_t c = c_value();
   std::cout<<"Eqn: c: "<<c<<" sj_bytes: "<<sj_bytes<<" sj_time: "<<sj_time<<" gi_bytes: "<<gi_bytes<<" gi_time: "<<gi_time<<" b: "<<b<<" a: "<<a<<" L: "<<L<<" mj: "<<mj<<std::endl;
   sj_bytes = (sj_bytes <= 0) ? 1 : sj_bytes;
   sj_time = (sj_time <= 0) ? 1 : sj_time;
   gi_time = (gi_time <= 0) ? 1 : gi_time;
   gi_bytes = (gi_bytes <= 0) ? 1 : gi_bytes;
 
-  // Mi = (cEj^2 Sj)/(Lgb) - a/b
+  // Mi = - Lgb/(c sj (mj - L)^2 + Lga)   -- by df/dMj
   double sj = sj_bytes / sj_time;
   double g = gi_bytes / gi_time;
   
   // std::cout<<"Eqn: c: "<<c<<" sj_bytes: "<<sj_bytes<<" sj_time: "<<sj_time<<" gi_bytes: "<<gi_bytes<<" gi_time: "<<gi_time<<" b: "<<b<<" a: "<<a<<" L: "<<L<<" mj: "<<mj<<std::endl;
-  size_t mi = (size_t)((c * (mj - L) * sj)/(L * g * b) - a/b); 
+  size_t mi = (size_t) ( (L * g * b)/ (c * sj * (mj - L) * (mj - L) + L * g * a) );
   new_space_->UpdateYGSize(mi);
   std::cout<<"updating yg_size to "<<mi<<std::endl;
 }
