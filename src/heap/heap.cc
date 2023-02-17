@@ -1702,6 +1702,7 @@ bool Heap::CollectGarbage(AllocationSpace space,
   j["before_time"] = before_time;
   j["after_time"] = after_time;
   j["new_space_capacity"] = new_space_->Capacity();
+  j["yg_size_of_object"] = new_space_->SizeOfObjects();
   j["gc_bytes"] = before_memory + allocated_external_memory_since_mark_compact;
   j["size_of_objects"] = AllGenerationSizeOfObjects();
   j["total_major_gc_time"] = GetTotalMajorGCTime();
