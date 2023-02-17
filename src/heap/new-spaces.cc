@@ -446,7 +446,7 @@ void NewSpace::UpdateYGSize(size_t capacity) {
     ShrinkYGTo(capacity);
   }
   size_t after_time = time_in_nanoseconds();
-  std::cout<<"Time to update yg size: "<<((after_time - before_time)/1000000)<<std::endl;
+  std::cout<<"Time to update yg size: "<<((after_time - before_time))<<std::endl;
 
 }
 
