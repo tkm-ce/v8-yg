@@ -450,7 +450,7 @@ void NewSpace::UpdateYGSize(size_t capacity) {
 
 }
 
-static size_t NewSpace::time_in_nanoseconds() {
+size_t NewSpace::time_in_nanoseconds() {
   static auto base = std::chrono::system_clock::now();
   return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now() - base).count();
 }
