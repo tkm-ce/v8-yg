@@ -115,7 +115,6 @@ class SemiSpace : public Space {
 
   // Returns the current capacity of the semispace.
   size_t current_capacity() { return current_capacity_; }
-  size_t time_in_nanoseconds();
 
   // Returns the target capacity of the semispace.
   size_t target_capacity() { return target_capacity_; }
@@ -250,6 +249,7 @@ class V8_EXPORT_PRIVATE NewSpace
 
   // Flip the pair of spaces.
   void Flip();
+  size_t time_in_nanoseconds();
 
   // Grow the capacity of the semispaces.  Assumes that they are not at
   // their maximum capacity.
