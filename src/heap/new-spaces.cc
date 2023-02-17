@@ -453,13 +453,20 @@ void NewSpace::GrowYGTo(size_t capacity) {
   // Double the semispace size but only up to maximum capacity.
   DCHECK(TotalCapacity() < MaximumCapacity());
   size_t new_capacity = capacity;
+  std::cout<<"Growing to: "<< new_capacity<<std::endl;
   if (to_space_.GrowTo(new_capacity)) {
+    std::cout<<"tospace grown to "<< to_space_.current_capacity()<<std::endl;
     // Only grow from space if we managed to grow to-space.
     if (!from_space_.GrowTo(new_capacity)) {
+      std::cout<<"fromspace grown to "<< from_space_.current_capacity()<<std::endl;
       // If we managed to grow to-space but couldn't grow from-space,
       // attempt to shrink to-space.
       to_space_.ShrinkTo(from_space_.target_capacity());
+    } else {
+      std::cout<<"unable to grow from space to "<< new_capacity<<". Current cap: "<< from_space_.current_capacity()<<std::endl;
     }
+  } else {
+    std::cout<<"unable to grow to space to "<< new_capacity<<". Current cap: "<< to_space_.current_capacity()<<std::endl;
   }
   DCHECK_SEMISPACE_ALLOCATION_INFO(allocation_info_, to_space_);
 }
@@ -467,12 +474,17 @@ void NewSpace::GrowYGTo(size_t capacity) {
 void NewSpace::ShrinkYGTo(size_t capacity) {
   size_t new_capacity = capacity;
   size_t rounded_new_capacity = ::RoundUp(new_capacity, Page::kPageSize);
+  std::cout<<"shrinking to: "<< new_capacity<<std::endl;
   if (rounded_new_capacity < TotalCapacity()) {
     to_space_.ShrinkTo(rounded_new_capacity);
     // Only shrink from-space if we managed to shrink to-space.
     if (from_space_.IsCommitted()) from_space_.Reset();
     from_space_.ShrinkTo(rounded_new_capacity);
+    std::cout<<"from and tospace shrinked to "<<to_space_.current_capacity()<<std::endl;
+  } else {
+    std::cout<<"unable to Shrink both spaces to "<< new_capacity<<". Current cap: "<< to_space_.current_capacity()<<std::endl;
   }
+  
   DCHECK_SEMISPACE_ALLOCATION_INFO(allocation_info_, to_space_);
 }
 
