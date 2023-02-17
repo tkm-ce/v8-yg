@@ -437,6 +437,7 @@ YG CHANGES START
 
 void NewSpace::UpdateYGSize(size_t capacity) {
 
+  size_t before_time = time_in_nanoseconds();
   if(capacity > TotalCapacity()) {
     std::cout<<"Growing yg size from "<<TotalCapacity()<<" to: "<<capacity<<std::endl;
     GrowYGTo(capacity);
@@ -444,7 +445,14 @@ void NewSpace::UpdateYGSize(size_t capacity) {
     std::cout<<"Shrinking yg size from "<<TotalCapacity()<<" to: "<<capacity<<std::endl;
     ShrinkYGTo(capacity);
   }
+  size_t after_time = time_in_nanoseconds();
+  std::cout<<"Time to update yg size: "<<((after_time - before_time)/1000000)<<std::endl;
 
+}
+
+static size_t NewSpace::time_in_nanoseconds() {
+  static auto base = std::chrono::system_clock::now();
+  return std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::system_clock::now() - base).count();
 }
 
 void NewSpace::GrowYGTo(size_t capacity) {

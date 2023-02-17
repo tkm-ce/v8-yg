@@ -115,6 +115,7 @@ class SemiSpace : public Space {
 
   // Returns the current capacity of the semispace.
   size_t current_capacity() { return current_capacity_; }
+  static size_t time_in_nanoseconds();
 
   // Returns the target capacity of the semispace.
   size_t target_capacity() { return target_capacity_; }
