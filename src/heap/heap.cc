@@ -1652,7 +1652,7 @@ void Heap::update_young_gen_size(size_t mj, double sj_bytes, double sj_time, dou
   size_t Li = new_space_->SizeOfObjects();
   size_t mi =  Li + (size_t)( (L * g * b)/ (c * sj * (mj - L) * (mj - L) + L * g * a) );
   new_space_->UpdateYGSize(mi);
-  std::cout<<"updating yg_size to "<<mi<<". increment: "<<(mi - Li)<<std::endl;
+  std::cout<<"updating yg_size to "<<mi<<". increment: "<<mi - Li<<std::endl;
 }
 
 bool Heap::CollectGarbage(AllocationSpace space,
