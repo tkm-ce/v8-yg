@@ -1650,8 +1650,8 @@ void Heap::update_young_gen_size(size_t mj, double sj_bytes, double sj_time, dou
   double g = gi_bytes / gi_time;
   
   size_t Li = new_space_->SizeOfObjects();
-  size_t mi =  Li + (size_t)( (L * g * b)/ (c * sj * (mj - L) * (mj - L) + L * g * a) );
-  mi = mi + 27000;
+  // size_t mi =  Li + (size_t)( (L * g * b)/ (c * sj * (mj - L) * (mj - L) + L * g * a) );
+  size_t mi = Li + sqrt( (L * g * b/ (sj * c * (mj - L))) + g/c   );
   new_space_->UpdateYGSize(mi);
   std::cout<<"updating yg_size to "<<mi<<". increment: "<<mi - Li<<std::endl;
 }
