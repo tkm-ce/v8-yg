@@ -1651,6 +1651,7 @@ void Heap::update_young_gen_size(size_t mj, double sj_bytes, double sj_time, dou
   
   size_t Li = new_space_->SizeOfObjects();
   size_t mi =  Li + (size_t)( (L * g * b)/ (c * sj * (mj - L) * (mj - L) + L * g * a) );
+  mi = mi + 27000;
   new_space_->UpdateYGSize(mi);
   std::cout<<"updating yg_size to "<<mi<<". increment: "<<mi - Li<<std::endl;
 }

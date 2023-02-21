@@ -481,8 +481,8 @@ void NewSpace::GrowYGTo(size_t capacity) {
 
 void NewSpace::ShrinkYGTo(size_t capacity) {
   size_t new_capacity = capacity;
-  size_t rounded_new_capacity = new_capacity;
-  // size_t rounded_new_capacity = ::RoundUp(new_capacity, Page::kPageSize);
+  // size_t rounded_new_capacity = new_capacity;
+  size_t rounded_new_capacity = ::RoundUp(new_capacity, Page::kPageSize);
   std::cout<<"shrinking to: "<< rounded_new_capacity<<std::endl;
   if (rounded_new_capacity < TotalCapacity()) {
     to_space_.ShrinkTo(rounded_new_capacity);
