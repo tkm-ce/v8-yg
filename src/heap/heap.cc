@@ -1642,8 +1642,14 @@ void Heap::update_young_gen_size(size_t mj, double sj_bytes, double sj_time, dou
   std::cout<<"Eqn: c: "<<c<<" sj_bytes: "<<sj_bytes<<" sj_time: "<<sj_time<<" gi_bytes: "<<gi_bytes<<" gi_time: "<<gi_time<<" b: "<<b<<" a: "<<a<<" L: "<<L<<" mj: "<<mj<<std::endl;
   sj_bytes = (sj_bytes <= 0) ? 1 : sj_bytes;
   sj_time = (sj_time <= 0) ? 1 : sj_time;
-  gi_time = (gi_time <= 0) ? 1 : gi_time;
-  gi_bytes = (gi_bytes <= 0) ? 1 : gi_bytes;
+  
+  gi_bytes = new_space_->TotalCapacity();
+  
+  // gi_time = (gi_time <= 0) ? 1 : gi_time;
+  // gi_bytes = (gi_bytes <= 0) ? 1 : gi_bytes;
+
+
+
 
   // Mi = - Lgb/(c sj (mj - L)^2 + Lga)   -- by df/dMj
   double sj = sj_bytes / sj_time;
@@ -1667,7 +1673,9 @@ bool Heap::CollectGarbage(AllocationSpace space,
   const char* collector_reason = nullptr;
   size_t allocated_external_memory_since_mark_compact = AllocatedExternalMemorySinceMarkCompact();
   bool major = !IsYoungGenerationCollector(SelectGarbageCollector(space, &collector_reason));
+  size_t before_yg_size = new_space_->SizeOfObjects();
   size_t before_memory = AllGenerationSizeOfObjects();
+  size_t after_yg_size = new_space_->SizeOfObjects();
   auto before_time = time_in_nanoseconds();
   bool result = CollectGarbageAux(space, gc_reason, gc_callback_flags);
   auto after_time = time_in_nanoseconds();
@@ -1693,6 +1701,11 @@ bool Heap::CollectGarbage(AllocationSpace space,
       j["allocation_duration"] = major_allocation_bad.value().second * 1000000;
       has_g = true;
     }
+  }
+  if(!major) {
+    gi_allocated_bytes = before_yg_size - gi_size_of_object;
+    gi_size_of_object = after_yg_size;
+    gi_time = after_time - before_time;
   }
   last_M_update_time = after_time;
   last_M_memory = after_memory;
@@ -1743,7 +1756,7 @@ bool Heap::CollectGarbage(AllocationSpace space,
   this->major_gc_bad.reset();
   this->major_allocation_bad.reset();
   membalancer_update();
-  update_young_gen_size(max_memory, s_bytes, s_time, g_bytes, g_time);
+  update_young_gen_size(max_memory, s_bytes, s_time, gi_allocated_bytes, gi_time);
   
   return result;
 }

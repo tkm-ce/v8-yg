@@ -2457,7 +2457,7 @@ public:
   using BytesAndDuration = std::pair<uint64_t, double>;
   base::Optional<BytesAndDuration> major_gc_bad, major_allocation_bad;
   std::atomic<size_t> L{0};
-  std::atomic<double> g_bytes{0}, g_time{0}, s_bytes{0}, s_time{0};
+  std::atomic<double> g_bytes{0}, g_time{0}, s_bytes{0}, s_time{0}, gi_allocated_bytes{0}, gi_size_of_object{0}, gi_time{0};
   std::atomic<bool> has_g{false}, has_s{false};
   std::atomic<size_t> last_M_update_time{0};
   std::atomic<double> last_M_memory{0};
