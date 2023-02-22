@@ -1657,9 +1657,10 @@ void Heap::update_young_gen_size(size_t mj, double sj_bytes, double sj_time, dou
   double p1 = L * g * b;
   double p2 = abs(sj * c * (mj - L));
   double p3 = abs(g/c);
-  size_t mi = Li + sqrt( p1/p2 + p3 ) * 10;
+  size_t mi = Li + sqrt( p1/p2 + p3 );
+  std::cout<<"Params: Lj: "<<L<<" g: "<<g<<" ("<<gi_bytes<<"/ "<<gi_time<<") b: "<<b<<" sj: "<<sj<<" ("<<sj_bytes<<"/ "<<sj_time<<") c:"<<c<<" (mj-L): "<<(mj - L)<<" g/c: "<<g/c<<"Li: "<<Li<<" extra mem: "<<sqrt( p1/p2 + p3 )<<std::endl;
   new_space_->UpdateYGSize(mi);
-  std::cout<<"g: "<<g<<" sj: "<<sj<<" p1: "<<p1<<" p2: "<<p2<<" p3: "<<p3<<" extra mem "<<sqrt(p1/p2 + p3)<<" Li: "<<Li<<" Total: "<<mi<<" diff: "<<sqrt( p1/p2 + p3 )<<std::endl;
+  // std::cout<<"g: "<<g<<" sj: "<<sj<<" p1: "<<p1<<" p2: "<<p2<<" p3: "<<p3<<" extra mem "<<sqrt(p1/p2 + p3)<<" Li: "<<Li<<" Total: "<<mi<<" diff: "<<sqrt( p1/p2 + p3 )<<std::endl;
   
 }
 
@@ -1701,8 +1702,9 @@ bool Heap::CollectGarbage(AllocationSpace space,
   }
   if(!major) {
     gi_allocated_bytes = before_yg_size - gi_size_of_object;
+    gi_time = (before_time - last_gi_time) /1000;
     gi_size_of_object = after_yg_size;
-    gi_time = (after_time - before_time) / 1000;
+    last_gi_time = after_time;
   }
   last_M_update_time = after_time;
   last_M_memory = after_memory;
