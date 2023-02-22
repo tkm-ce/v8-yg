@@ -1657,9 +1657,9 @@ void Heap::update_young_gen_size(size_t mj, double sj_bytes, double sj_time, dou
   double p1 = L * g * b;
   double p2 = abs(sj * c * (mj - L));
   double p3 = abs(g/c);
-  size_t mi = Li + sqrt( p1/p2 + p3 ) * 1000;
+  size_t mi = Li + sqrt( p1/p2 + p3 ) * 10;
   new_space_->UpdateYGSize(mi);
-  std::cout<<"g: "<<g<<" sj: "<<sj<<" p1: "<<p1<<" p2: "<<p2<<" p3: "<<p3<<" extra mem "<<sqrt(p1/p2 + p3)<<" Li: "<<Li<<" Total: "<<mi<<std::endl;
+  std::cout<<"g: "<<g<<" sj: "<<sj<<" p1: "<<p1<<" p2: "<<p2<<" p3: "<<p3<<" extra mem "<<sqrt(p1/p2 + p3)<<" Li: "<<Li<<" Total: "<<mi<<" diff: "<<sqrt( p1/p2 + p3 )<<std::endl;
   
 }
 
