@@ -1642,11 +1642,9 @@ void Heap::update_young_gen_size(size_t mj, double sj_bytes, double sj_time, dou
   std::cout<<"Eqn: c: "<<c<<" sj_bytes: "<<sj_bytes<<" sj_time: "<<sj_time<<" gi_bytes: "<<gi_bytes<<" gi_time: "<<gi_time<<" b: "<<b<<" a: "<<a<<" L: "<<L<<" mj: "<<mj<<std::endl;
   sj_bytes = (sj_bytes <= 0) ? 1 : sj_bytes;
   sj_time = (sj_time <= 0) ? 1 : sj_time;
-  
-  gi_bytes = new_space_->TotalCapacity();
-  
-  // gi_time = (gi_time <= 0) ? 1 : gi_time;
-  // gi_bytes = (gi_bytes <= 0) ? 1 : gi_bytes;
+    
+  gi_time = (gi_time <= 0) ? 1 : gi_time;
+  gi_bytes = (gi_bytes <= 0) ? 1 : gi_bytes;
 
 
 
