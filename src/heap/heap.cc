@@ -1673,9 +1673,11 @@ bool Heap::CollectGarbage(AllocationSpace space,
   bool major = !IsYoungGenerationCollector(SelectGarbageCollector(space, &collector_reason));
   size_t before_yg_size = new_space_->SizeOfObjects();
   size_t before_memory = AllGenerationSizeOfObjects();
-  size_t after_yg_size = new_space_->SizeOfObjects();
   auto before_time = time_in_nanoseconds();
+
   bool result = CollectGarbageAux(space, gc_reason, gc_callback_flags);
+
+  size_t after_yg_size = new_space_->SizeOfObjects();
   auto after_time = time_in_nanoseconds();
   size_t after_memory = AllGenerationSizeOfObjects();
   // sometimes working memory may be bigger. need this max to fix it.
@@ -1705,6 +1707,10 @@ bool Heap::CollectGarbage(AllocationSpace space,
     gi_time = (before_time - last_gi_time) /1000;
     gi_size_of_object = after_yg_size;
     last_gi_time = after_time;
+    std::cout<<"minor gc time (sj): "<< (after_time - before_time) / 1000 << "micros sec"<<std::endl;
+    std::cout<<" minor gc allocated bytes since last gc (gi_bytes): "<<gi_allocated_bytes<<std::endl;
+    std::cout<<" minor gc time since last gc (gi_time): "<<gi_time<<std::endl;
+    
   }
   last_M_update_time = after_time;
   last_M_memory = after_memory;
