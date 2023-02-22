@@ -157,11 +157,16 @@ size_t SemiSpace::CommittedPhysicalMemory() {
 
 bool SemiSpace::GrowTo(size_t new_capacity) {
   if (!IsCommitted()) {
-    if (!Commit()) return false;
+    if (!Commit()) {
+      std::cout<<"growto: commit is false"<<std::endl;
+      return false;
+    }
   }
+  std::cout<<"growto: New Cap: "<<new_capacity<<" max cap: "<<maximum_capacity_<<" target_capacity: "<<target_capacity_<<std::endl;
   DCHECK_EQ(new_capacity & kPageAlignmentMask, 0u);
   DCHECK_LE(new_capacity, maximum_capacity_);
   DCHECK_GT(new_capacity, target_capacity_);
+  std::cout<<"growto: all conditions met."<<std::endl;
   const size_t delta = new_capacity - target_capacity_;
   DCHECK(IsAligned(delta, AllocatePageSize()));
   const int delta_pages = static_cast<int>(delta / Page::kPageSize);
@@ -175,6 +180,7 @@ bool SemiSpace::GrowTo(size_t new_capacity) {
             NOT_EXECUTABLE);
     if (new_page == nullptr) {
       if (pages_added) RewindPages(pages_added);
+      std::cout<<"growto: new_page is null"<<std::endl;
       return false;
     }
     memory_chunk_list_.PushBack(new_page);
@@ -182,6 +188,7 @@ bool SemiSpace::GrowTo(size_t new_capacity) {
     // Duplicate the flags that was set on the old page.
     new_page->SetFlags(last_page()->GetFlags(), Page::kCopyOnFlipFlagsMask);
   }
+  std::cout<<"growto: done."<<std::endl;
   AccountCommitted(delta);
   target_capacity_ = new_capacity;
   return true;
@@ -199,9 +206,11 @@ void SemiSpace::RewindPages(int num_pages) {
 }
 
 void SemiSpace::ShrinkTo(size_t new_capacity) {
+  std::cout<<"shrinkto: New Cap: "<<new_capacity<<" min cap: "<<minimum_capacity_<<" target_capacity: "<<target_capacity_<<std::endl;
   DCHECK_EQ(new_capacity & kPageAlignmentMask, 0u);
   DCHECK_GE(new_capacity, minimum_capacity_);
   DCHECK_LT(new_capacity, target_capacity_);
+  std::cout<<"shrinkto: all conditions met."<<std::endl;
   if (IsCommitted()) {
     const size_t delta = target_capacity_ - new_capacity;
     DCHECK(IsAligned(delta, Page::kPageSize));
@@ -210,6 +219,7 @@ void SemiSpace::ShrinkTo(size_t new_capacity) {
     AccountUncommitted(delta);
     heap()->memory_allocator()->unmapper()->FreeQueuedChunks();
   }
+  std::cout<<"shrinkto: done."<<std::endl;
   target_capacity_ = new_capacity;
 }
 
