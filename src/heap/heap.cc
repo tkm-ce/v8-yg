@@ -1703,7 +1703,7 @@ bool Heap::CollectGarbage(AllocationSpace space,
   if(!major) {
     gi_allocated_bytes = before_yg_size - gi_size_of_object;
     gi_size_of_object = after_yg_size;
-    gi_time = (after_time - before_time) / 1000000;
+    gi_time = (after_time - before_time) / 1000;
   }
   last_M_update_time = after_time;
   last_M_memory = after_memory;
