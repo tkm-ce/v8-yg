@@ -439,10 +439,10 @@ void NewSpace::UpdateYGSize(size_t capacity) {
 
   size_t before_time = time_in_nanoseconds();
   if(capacity > TotalCapacity()) {
-    std::cout<<"Growing yg size from "<<TotalCapacity()<<" to: "<<capacity<<std::endl;
+    // std::cout<<"Growing yg size from "<<TotalCapacity()<<" to: "<<capacity<<std::endl;
     GrowYGTo(capacity);
   } else {
-    std::cout<<"Shrinking yg size from "<<TotalCapacity()<<" to: "<<capacity<<std::endl;
+    // std::cout<<"Shrinking yg size from "<<TotalCapacity()<<" to: "<<capacity<<std::endl;
     ShrinkYGTo(capacity);
   }
   size_t after_time = time_in_nanoseconds();
@@ -461,7 +461,7 @@ void NewSpace::GrowYGTo(size_t capacity) {
   // Double the semispace size but only up to maximum capacity.
   DCHECK(TotalCapacity() < MaximumCapacity());
   size_t new_capacity = capacity;
-  std::cout<<"Growing to: "<< new_capacity<<std::endl;
+  std::cout<<"Growing to: "<< new_capacity<<" Max Capacity: "<<MaximumCapacity()<<" TotalCapacity: "<<TotalCapacity()<<"Minimum cap: "<<to_space_.minimum_capacity()<<std::endl;
   if (to_space_.GrowTo(new_capacity)) {
     std::cout<<"tospace grown to "<< to_space_.current_capacity()<<std::endl;
     // Only grow from space if we managed to grow to-space.
@@ -483,7 +483,7 @@ void NewSpace::ShrinkYGTo(size_t capacity) {
   size_t new_capacity = capacity;
   // size_t rounded_new_capacity = new_capacity;
   size_t rounded_new_capacity = ::RoundUp(new_capacity, Page::kPageSize);
-  std::cout<<"shrinking to: "<< rounded_new_capacity<<std::endl;
+  std::cout<<"Shrinking to: "<<capacity<<"/("<<rounded_new_capacity<<") Max Capacity: "<<MaximumCapacity()<<" TotalCapacity: "<<TotalCapacity()<<"Minimum cap: "<<to_space_.minimum_capacity()<<std::endl;
   if (rounded_new_capacity < TotalCapacity()) {
     to_space_.ShrinkTo(rounded_new_capacity);
     // Only shrink from-space if we managed to shrink to-space.
