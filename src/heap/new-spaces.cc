@@ -162,11 +162,11 @@ bool SemiSpace::GrowTo(size_t new_capacity) {
       return false;
     }
   }
-  std::cout<<"growto: New Cap: "<<new_capacity<<" max cap: "<<maximum_capacity_<<" target_capacity: "<<target_capacity_<<std::endl;
+  // std::cout<<"growto: New Cap: "<<new_capacity<<" max cap: "<<maximum_capacity_<<" target_capacity: "<<target_capacity_<<std::endl;
   DCHECK_EQ(new_capacity & kPageAlignmentMask, 0u);
   DCHECK_LE(new_capacity, maximum_capacity_);
   DCHECK_GT(new_capacity, target_capacity_);
-  std::cout<<"growto: all conditions met."<<std::endl;
+  // std::cout<<"growto: all conditions met."<<std::endl;
   const size_t delta = new_capacity - target_capacity_;
   DCHECK(IsAligned(delta, AllocatePageSize()));
   const int delta_pages = static_cast<int>(delta / Page::kPageSize);
@@ -188,7 +188,7 @@ bool SemiSpace::GrowTo(size_t new_capacity) {
     // Duplicate the flags that was set on the old page.
     new_page->SetFlags(last_page()->GetFlags(), Page::kCopyOnFlipFlagsMask);
   }
-  std::cout<<"growto: done."<<std::endl;
+  // std::cout<<"growto: done."<<std::endl;
   AccountCommitted(delta);
   target_capacity_ = new_capacity;
   return true;
@@ -206,11 +206,11 @@ void SemiSpace::RewindPages(int num_pages) {
 }
 
 void SemiSpace::ShrinkTo(size_t new_capacity) {
-  std::cout<<"shrinkto: New Cap: "<<new_capacity<<" min cap: "<<minimum_capacity_<<" target_capacity: "<<target_capacity_<<std::endl;
+  // std::cout<<"ShrinkTo: New Cap: "<<new_capacity<<" min cap: "<<minimum_capacity_<<" target_capacity: "<<target_capacity_<<std::endl;
   DCHECK_EQ(new_capacity & kPageAlignmentMask, 0u);
   DCHECK_GE(new_capacity, minimum_capacity_);
   DCHECK_LT(new_capacity, target_capacity_);
-  std::cout<<"shrinkto: all conditions met."<<std::endl;
+  // std::cout<<"ShrinkTo: all conditions met."<<std::endl;
   if (IsCommitted()) {
     const size_t delta = target_capacity_ - new_capacity;
     DCHECK(IsAligned(delta, Page::kPageSize));
@@ -219,7 +219,7 @@ void SemiSpace::ShrinkTo(size_t new_capacity) {
     AccountUncommitted(delta);
     heap()->memory_allocator()->unmapper()->FreeQueuedChunks();
   }
-  std::cout<<"shrinkto: done."<<std::endl;
+  // std::cout<<"ShrinkTo: done."<<std::endl;
   target_capacity_ = new_capacity;
 }
 
@@ -451,12 +451,14 @@ void NewSpace::UpdateYGSize(size_t capacity) {
   if(capacity > TotalCapacity()) {
     // std::cout<<"Growing yg size from "<<TotalCapacity()<<" to: "<<capacity<<std::endl;
     GrowYGTo(capacity);
-  } else {
+  } else if(capacity < TotalCapacity()){
     // std::cout<<"Shrinking yg size from "<<TotalCapacity()<<" to: "<<capacity<<std::endl;
     ShrinkYGTo(capacity);
+  } else {
+    std::cout<<"No change in yg_size. Total Capacity: "<<TotalCapacity()<<std::endl;
   }
   size_t after_time = time_in_nanoseconds();
-  std::cout<<"Time to update yg size: "<<((after_time - before_time))<<std::endl;
+  std::cout<<"Time to update yg size: "<<((after_time - before_time)/1000)<<" Micro seconds"<<std::endl;
 
 }
 
@@ -493,17 +495,24 @@ void NewSpace::ShrinkYGTo(size_t capacity) {
   size_t new_capacity = capacity;
   // size_t rounded_new_capacity = new_capacity;
   size_t rounded_new_capacity = ::RoundUp(new_capacity, Page::kPageSize);
-  std::cout<<"Shrinking to: "<<capacity<<"/("<<rounded_new_capacity<<") Max Capacity: "<<MaximumCapacity()<<" TotalCapacity: "<<TotalCapacity()<<"Minimum cap: "<<to_space_.minimum_capacity()<<std::endl;
+  // std::cout<<"Shrinking to: "<<capacity<<"/("<<rounded_new_capacity<<") Max Capacity: "<<MaximumCapacity()<<" TotalCapacity: "<<TotalCapacity()<<"Minimum cap: "<<to_space_.minimum_capacity()<<std::endl;
   if (rounded_new_capacity < TotalCapacity()) {
     to_space_.ShrinkTo(rounded_new_capacity);
     // Only shrink from-space if we managed to shrink to-space.
-    if (from_space_.IsCommitted()) from_space_.Reset();
+    if (from_space_.IsCommitted()) {
+      std::cout<<"ShrinkYGTo: Committed = true"<<std::endl;
+      from_space_.Reset();
+    }
+    
     from_space_.ShrinkTo(rounded_new_capacity);
-    std::cout<<"from and tospace shrinked to "<<to_space_.current_capacity()<<std::endl;
+    std::cout<<"ShrinkYGTo: Both spaces shrinked. Expected: "<<rounded_new_capacity<<" Current: "<<TotalCapacity()<<std::endl;
   } else {
-    std::cout<<"unable to Shrink both spaces to "<< rounded_new_capacity<<". Current cap: "<< to_space_.current_capacity()<<" Total cap: "<<TotalCapacity()<<std::endl;
+    if(rounded_new_capacity == TotalCapacity()) {
+      std::cout<<"ShrinkYGTo: Same size as before. Not shrinking"<<std::endl;  
+    } else {
+      std::cout<<"ShrinkYGTo:unable to Shrink both spaces to "<< rounded_new_capacity<<". Current cap: "<< to_space_.current_capacity()<<" Total cap: "<<TotalCapacity()<<std::endl;
+    }
   }
-  
   DCHECK_SEMISPACE_ALLOCATION_INFO(allocation_info_, to_space_);
 }
 
