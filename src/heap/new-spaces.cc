@@ -471,8 +471,8 @@ void NewSpace::GrowYGTo(size_t capacity) {
 
   DCHECK_IMPLIES(FLAG_local_heaps, heap()->safepoint()->IsActive());
   // Double the semispace size but only up to maximum capacity.
-  DCHECK(TotalCapacity() < MaximumCapacity());
-  size_t new_capacity = capacity;
+  size_t new_capacity = ::RoundUp(capacity, Page::kPageSize);
+  DCHECK(new_capacity <= MaximumCapacity());
   std::cout<<"Growing to: "<< new_capacity<<" Max Capacity: "<<MaximumCapacity()<<" TotalCapacity: "<<TotalCapacity()<<"Minimum cap: "<<to_space_.minimum_capacity()<<std::endl;
   if (to_space_.GrowTo(new_capacity)) {
     std::cout<<"tospace grown to "<< to_space_.current_capacity()<<std::endl;
