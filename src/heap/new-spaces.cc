@@ -520,6 +520,7 @@ void NewSpace::ShrinkYGTo(size_t capacity) {
 
 
 void NewSpace::Grow() {
+  std::cout<<"***Calling commented Grow()***"<<std::endl;
   // DCHECK_IMPLIES(FLAG_local_heaps, heap()->safepoint()->IsActive());
   // // Double the semispace size but only up to maximum capacity.
   // DCHECK(TotalCapacity() < MaximumCapacity());
@@ -538,6 +539,7 @@ void NewSpace::Grow() {
 }
 
 void NewSpace::Shrink() {
+  std::cout<<"***Calling commented shrink()***"<<std::endl;
   // size_t new_capacity = std::max(InitialTotalCapacity(), 2 * Size());
   // size_t rounded_new_capacity = ::RoundUp(new_capacity, Page::kPageSize);
   // if (rounded_new_capacity < TotalCapacity()) {
