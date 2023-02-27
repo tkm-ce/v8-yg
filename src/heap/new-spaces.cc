@@ -513,6 +513,8 @@ void NewSpace::ShrinkYGTo(size_t capacity) {
       std::cout<<"ShrinkYGTo:unable to Shrink both spaces to "<< rounded_new_capacity<<". Current cap: "<< to_space_.current_capacity()<<" Total cap: "<<TotalCapacity()<<std::endl;
     }
   }
+  // new_lo_space_->SetCapacity(new_space_->Capacity());
+  UncommitFromSpace();
   DCHECK_SEMISPACE_ALLOCATION_INFO(allocation_info_, to_space_);
 }
 

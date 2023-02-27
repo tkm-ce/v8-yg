@@ -1668,7 +1668,7 @@ void Heap::update_young_gen_size(size_t mj, double sj_bytes, double sj_time, dou
 bool Heap::CollectGarbage(AllocationSpace space,
                           GarbageCollectionReason gc_reason,
                           const v8::GCCallbackFlags gc_callback_flags) {
-  std::cout<<"Garbage collection"<<std::endl;
+  std::cout<<"\n\nGarbage collection"<<std::endl;
   const char* collector_reason = nullptr;
   size_t allocated_external_memory_since_mark_compact = AllocatedExternalMemorySinceMarkCompact();
   bool major = !IsYoungGenerationCollector(SelectGarbageCollector(space, &collector_reason));
