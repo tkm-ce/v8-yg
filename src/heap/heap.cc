@@ -1726,11 +1726,32 @@ bool Heap::CollectGarbage(AllocationSpace space,
   j["before_time"] = before_time;
   j["after_time"] = after_time;
   j["new_space_capacity"] = new_space_->Capacity();
-  j["yg_size_of_object"] = new_space_->SizeOfObjects();
   j["gc_bytes"] = before_memory + allocated_external_memory_since_mark_compact;
   j["size_of_objects"] = AllGenerationSizeOfObjects();
   j["total_major_gc_time"] = GetTotalMajorGCTime();
   j["total_gc_time"] = after_time - before_time;
+
+
+  /*
+    some are gonna be repeated
+  */
+  j["yg_semispace_limit"] = new_space_->TotalCapacity();
+  j["og_heap_limit"] = old_generation_allocation_limit();
+  j["yg_size_of_object"] = new_space_->SizeOfObjects();
+  j["og_size_of_object"] = OldGenerationSizeOfObjects();
+
+  if(major) {
+    j["yg_gc_time"] = 0;
+    j["og_gc_time"] = after_time - before_time;
+    j["yg_allocated_bytes_since_last_gc"] = double(gi_allocated_bytes);
+    j["yg_allocation_time"] = double(gi_time);
+  } else {
+    j["yg_gc_time"] = after_time - before_time;
+    j["og_gc_time"] = 0;
+  }
+
+
+
   j["gc_reason"] = GarbageCollectionReasonToString(gc_reason);
   j["collector_reason"] = collector_reason ? std::string(collector_reason) : "";
   if (log_gc()) {
