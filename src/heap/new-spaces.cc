@@ -163,14 +163,20 @@ bool SemiSpace::GrowTo(size_t new_capacity) {
     }
   }
   // std::cout<<"growto: New Cap: "<<new_capacity<<" max cap: "<<maximum_capacity_<<" target_capacity: "<<target_capacity_<<std::endl;
+  std::cout<<"Checking page alignment"<<std::endl;
   DCHECK_EQ(new_capacity & kPageAlignmentMask, 0u);
+  std::cout<<"Finished Checking page alignment"<<std::endl;
   DCHECK_LE(new_capacity, maximum_capacity_);
+  std::cout<<"Finished Checking <= max_cap>"<<std::endl;
   DCHECK_GT(new_capacity, target_capacity_);
+  std::cout<<"Finished Checking >= target_cap>"<<std::endl;
   // std::cout<<"growto: all conditions met."<<std::endl;
   const size_t delta = new_capacity - target_capacity_;
   DCHECK(IsAligned(delta, AllocatePageSize()));
+  std::cout<<"Finished Checking IsAligned>"<<std::endl;
   const int delta_pages = static_cast<int>(delta / Page::kPageSize);
   DCHECK(last_page());
+  std::cout<<"Finished Checking last_page>"<<std::endl;
   IncrementalMarking::NonAtomicMarkingState* marking_state =
       heap()->incremental_marking()->non_atomic_marking_state();
   for (int pages_added = 0; pages_added < delta_pages; pages_added++) {
@@ -188,7 +194,7 @@ bool SemiSpace::GrowTo(size_t new_capacity) {
     // Duplicate the flags that was set on the old page.
     new_page->SetFlags(last_page()->GetFlags(), Page::kCopyOnFlipFlagsMask);
   }
-  // std::cout<<"growto: done."<<std::endl;
+  std::cout<<"Finished growing space>"<<std::endl;
   AccountCommitted(delta);
   target_capacity_ = new_capacity;
   return true;
