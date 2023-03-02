@@ -1631,39 +1631,39 @@ size_t Heap::adjusted_global_allocation_limit() const {
 
 void Heap::update_young_gen_size(size_t mj, double sj_bytes, double sj_time, double gi_bytes, double gi_time) {
 
-  if(!use_yg_balancer()) {
-    std::cout<<"yg_balancer flag disabled"<<std::endl;
-    return;
-  }
-  double b = 0.35;
-  double a = 0.25; //slope
-  size_t L = OldGenerationSizeOfObjects();
-  double c = c_value();
-  std::cout<<"Eqn: c: "<<c<<" sj_bytes: "<<sj_bytes<<" sj_time: "<<sj_time<<" gi_bytes: "<<gi_bytes<<" gi_time: "<<gi_time<<" b: "<<b<<" a: "<<a<<" L: "<<L<<" mj: "<<mj<<std::endl;
-  sj_bytes = (sj_bytes <= 0) ? 1 : sj_bytes;
-  sj_time = (sj_time <= 0) ? 1 : sj_time;
+  // if(!use_yg_balancer()) {
+  //   std::cout<<"yg_balancer flag disabled"<<std::endl;
+  //   return;
+  // }
+  // double b = 0.35;
+  // double a = 0.25; //slope
+  // size_t L = OldGenerationSizeOfObjects();
+  // double c = c_value();
+  // std::cout<<"Eqn: c: "<<c<<" sj_bytes: "<<sj_bytes<<" sj_time: "<<sj_time<<" gi_bytes: "<<gi_bytes<<" gi_time: "<<gi_time<<" b: "<<b<<" a: "<<a<<" L: "<<L<<" mj: "<<mj<<std::endl;
+  // sj_bytes = (sj_bytes <= 0) ? 1 : sj_bytes;
+  // sj_time = (sj_time <= 0) ? 1 : sj_time;
     
-  gi_time = (gi_time <= 0) ? 1 : gi_time;
-  gi_bytes = (gi_bytes <= 0) ? 1 : gi_bytes;
+  // gi_time = (gi_time <= 0) ? 1 : gi_time;
+  // gi_bytes = (gi_bytes <= 0) ? 1 : gi_bytes;
 
 
 
-  // Mi = - Lgb/(c sj (mj - L)^2 + Lga)   -- by df/dMj
-  double sj = sj_bytes / sj_time;
-  double g = gi_bytes / gi_time;
+  // // Mi = - Lgb/(c sj (mj - L)^2 + Lga)   -- by df/dMj
+  // double sj = sj_bytes / sj_time;
+  // double g = gi_bytes / gi_time;
   
-  size_t Li = new_space_->SizeOfObjects();
-  // size_t mi =  Li + (size_t)( (L * g * b)/ (c * sj * (mj - L) * (mj - L) + L * g * a) );
-  double p1 = L * g * b;
-  double p2 = abs(sj * c * (mj - L));
-  double p3 = abs(g/c);
-  size_t mi = Li + sqrt( p1/p2 + p3 );
-  mi = mi > 10000000 ? 10000000 : mi;
-  mi = 1000000; //Hard coding
-  std::cout<<"Params: Lj: "<<L<<" g: "<<g<<" ("<<gi_bytes<<"/ "<<gi_time<<") b: "<<b<<" sj: "<<sj<<" ("<<sj_bytes<<"/ "<<sj_time<<") c:"<<c<<" (mj-L): "<<(mj - L)<<" g/c: "<<g/c<<"Li: "<<Li<<" extra mem: "<<sqrt( p1/p2 + p3 )<<std::endl;
-  new_space_->UpdateYGSize(mi);
+  // size_t Li = new_space_->SizeOfObjects();
+  // // size_t mi =  Li + (size_t)( (L * g * b)/ (c * sj * (mj - L) * (mj - L) + L * g * a) );
+  // double p1 = L * g * b;
+  // double p2 = abs(sj * c * (mj - L));
+  // double p3 = abs(g/c);
+  // size_t mi = Li + sqrt( p1/p2 + p3 );
+  // mi = mi > 10000000 ? 10000000 : mi;
+  // mi = 1000000; //Hard coding
+  // std::cout<<"Params: Lj: "<<L<<" g: "<<g<<" ("<<gi_bytes<<"/ "<<gi_time<<") b: "<<b<<" sj: "<<sj<<" ("<<sj_bytes<<"/ "<<sj_time<<") c:"<<c<<" (mj-L): "<<(mj - L)<<" g/c: "<<g/c<<"Li: "<<Li<<" extra mem: "<<sqrt( p1/p2 + p3 )<<std::endl;
+  // new_space_->UpdateYGSize(mi);
   // std::cout<<"g: "<<g<<" sj: "<<sj<<" p1: "<<p1<<" p2: "<<p2<<" p3: "<<p3<<" extra mem "<<sqrt(p1/p2 + p3)<<" Li: "<<Li<<" Total: "<<mi<<" diff: "<<sqrt( p1/p2 + p3 )<<std::endl;
-  
+  new_space_->UpdateYGSize(1e6);
 }
 
 bool Heap::CollectGarbage(AllocationSpace space,
