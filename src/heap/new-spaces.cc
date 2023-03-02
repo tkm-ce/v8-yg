@@ -194,7 +194,7 @@ bool SemiSpace::GrowTo(size_t new_capacity) {
     // Duplicate the flags that was set on the old page.
     new_page->SetFlags(last_page()->GetFlags(), Page::kCopyOnFlipFlagsMask);
   }
-  std::cout<<"Finished growing space>"<<std::endl;
+  std::cout<<"Finished growing space"<<std::endl;
   AccountCommitted(delta);
   target_capacity_ = new_capacity;
   return true;
@@ -484,12 +484,12 @@ void NewSpace::GrowYGTo(size_t capacity) {
     std::cout<<"tospace grown to "<< to_space_.current_capacity()<<std::endl;
     // Only grow from space if we managed to grow to-space.
     if (!from_space_.GrowTo(new_capacity)) {
-      std::cout<<"fromspace grown to "<< from_space_.current_capacity()<<std::endl;
+      std::cout<<"unable to grow from space to "<< new_capacity<<". Current cap: "<< from_space_.current_capacity()<<std::endl;
       // If we managed to grow to-space but couldn't grow from-space,
       // attempt to shrink to-space.
       to_space_.ShrinkTo(from_space_.target_capacity());
     } else {
-      std::cout<<"unable to grow from space to "<< new_capacity<<". Current cap: "<< from_space_.current_capacity()<<std::endl;
+      std::cout<<"fromspace grown to "<< from_space_.current_capacity()<<std::endl;
     }
   } else {
     std::cout<<"unable to grow to space to "<< new_capacity<<". Current cap: "<< to_space_.current_capacity()<<std::endl;
