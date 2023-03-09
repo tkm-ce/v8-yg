@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <cmath>
+#include <unistd.h>
 #include <map>
 #include <memory>
 #include <unordered_map>
