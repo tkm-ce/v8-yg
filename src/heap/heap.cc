@@ -122,6 +122,7 @@ void Timer::start(const std::function<void()>& f, time_t::duration interval) {
   });
 }
 
+
 void Timer::try_start(const std::function<void()>& f, time_t::duration interval) {
   if (!started()) {
     start(f, interval);
