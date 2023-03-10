@@ -1924,9 +1924,9 @@ class Heap {
 
   size_t adjusted_old_generation_allocation_limit() const;
 
-  // void set_old_generation_allocation_limit(size_t newlimit) {
-  //   old_generation_allocation_limit_.store(newlimit, std::memory_order_relaxed);
-  // }
+  void set_old_generation_allocation_limit(size_t newlimit) {
+    old_generation_allocation_limit_.store(newlimit, std::memory_order_relaxed);
+  }
 
   size_t global_allocation_limit() const { return global_allocation_limit_; }
 
