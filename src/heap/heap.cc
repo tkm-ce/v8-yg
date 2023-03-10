@@ -1672,9 +1672,9 @@ void Heap::update_heap_limit(size_t new_limit) {
   global_allocation_limit_ = new_limit + global_allocation_limit_delta_;
 }
 
-// void Heap::set_old_generation_allocation_limit(size_t newlimit) {
-//   old_generation_allocation_limit_.exchange(newlimit, std::memory_order_relaxed);
-// }
+void Heap::set_old_generation_allocation_limit(size_t newlimit) {
+  old_generation_allocation_limit_.exchange(newlimit, std::memory_order_relaxed);
+}
 
 bool Heap::CollectGarbageAux(AllocationSpace space,
                              GarbageCollectionReason gc_reason,
