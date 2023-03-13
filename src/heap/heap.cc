@@ -1643,6 +1643,7 @@ bool Heap::CollectGarbage(AllocationSpace space,
     if (this->major_gc_bad) {
       s_bytes = (s_bytes + before_memory + allocated_external_memory_since_mark_compact) / 2;
       s_time = (s_time + major_gc_bad.value().second * 1000000) / 2;
+      concurrent_gc_time.exchange(0);
       //j["gc_bytes"] = major_gc_bad.value().first;
       j["gc_duration"] = major_gc_bad.value().second * 1000000;
       has_s = true;

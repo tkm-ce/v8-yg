@@ -2459,6 +2459,7 @@ public:
   std::atomic<bool> has_g{false}, has_s{false};
   std::atomic<size_t> last_M_update_time{0};
   std::atomic<double> last_M_memory{0};
+  std::atomic<size_t> concurrent_gc_time{0};
   void membalancer_update();
 };
 
