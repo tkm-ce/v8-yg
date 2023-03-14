@@ -338,7 +338,7 @@ void GCTracer::Stop(GarbageCollector collector) {
   auto record =
     [&](double duration) {
       heap_->UpdateTotalMajorGCTime(duration+ heap_->concurrent_gc_time);
-      concurrent_gc_time.exchange(0);
+      heap->concurrent_gc_time.exchange(0);
       int64_t gced = static_cast<int64_t>(current_.start_object_size) - current_.end_object_size;
       std::cout
         << "gc, name: " << heap_->name_
